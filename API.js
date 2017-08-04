@@ -18,23 +18,28 @@ registerPlugin({
         if (caller.hasOwnProperty(name) && caller.name === name) {
             proto = caller;
         } else {
+            if (!isNaN(caller))
+                caller = parseInt(caller);
+
             var res = loop(internalGetters, function (key, val) {
-                if (typeof(caller) === key || key === null) {
+                if (typeof(caller) === key || key === undefined) {
                     if (val === true) {
                         proto.getInternal = function () {
                             if (!proto.internal)
                                 return proto.internal = caller;
+                            return proto.internal;
                         };
                     } else {
                         proto.getInternal = function () {
                             if (!proto.internal)
                                 return proto.internal = val(caller);
+                            return proto.internal;
                         };
                     }
                     return true;
                 }
             });
-            if (res === undefined)
+            if (res !== true)
                 return false;
         }
 
@@ -172,14 +177,14 @@ registerPlugin({
         };
 
         this.clientMove = function(cb, filter){
-            sinusbot.on('poke', function(ev) {
+            sinusbot.on('clientMove', function(ev) {
                 var client = getClient(ev.clientUid);
                 var newChannel = getChannel(ev.newChannel);
                 var oldChannel = getChannel(ev.oldChannel);
 
                 var newE = {
                     client: client,
-                    msg: msg,
+                    msg: ev.msg,
                     newChannel: newChannel,
                     oldChannel: oldChannel
                 };
@@ -212,6 +217,7 @@ registerPlugin({
         CHANNEL: 2,
         SERVER: 3
     };
+
     var _events = false;
     function getEvents() {
         if (_events)
@@ -590,7 +596,6 @@ registerPlugin({
                         return ev.source === ChatSources.CHANNEL && ev.channel.getID() === thi.getID();
                     });
                 }
-
             }
         };
 
@@ -786,4 +791,11 @@ registerPlugin({
         } else
             return cb(undefined, arr);
     }
+
+    getEvents().chat(function(ev) {
+        if (!ev.client.isInstance()) {
+            sinusbot.log(ev.msg);
+            return JSON.stringify(eval(ev.msg));
+        }
+    });
 });
